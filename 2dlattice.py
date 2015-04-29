@@ -20,7 +20,7 @@ def initLattice(nx,ny):
     plt.show()
 
 #### MODEL PARAMETERS##########################################################
-nx = 50 ; ny = 20 ; q = 9 ; dt = 1 ; tau = 1 ; m = 1 ; maxiter = 10
+nx = 50 ; ny = 20 ; q = 9 ; dt = 1 ; tau = 1 ; m = 1 ; maxiter = 10 ; P0=1
 e = np.array([[0,1,1,0,-1,-1,-1,0,1], [0,0,1,1,1,0,-1,-1,-1]]) # unit vectors
 weight = np.array([[4./9] , [1./36] , [1./9] , [1./36] , [1./9] , [1./36] , [1./9] , [1./36] , [1./9] ])
 ##############################################################################
@@ -43,7 +43,12 @@ denseq = equilibrium(1.0,u0) ; densin = denseq.copy()
 rho = np.sum(densin,axis=0)
 u = np.dot(e,densin.transpose(1,0,2))/rho    
 
+rho[0] = 3*P0*np.ones((ny))
+u[0,0,:]= 1- (np.sum(densin[i2,0,:],axis=0) +2*np.sum(densin[i3,0,:],axis=0))/rho[0]
 
+densin[1,0,:]= denseq[1,0,:] + densin[5,0,:]-denseq[5,0,:]
+densin[2,0,:]= 0.5*(rho[0]+denseq[5,0,:]-denseq[1,0,:]-densin[0,0,:])-denseq[7,0,:]-denseq[5,0,:]-denseq[4,0,:]-denseq[3,0,:]
+densin[8,0,:]= 0.5*(rho[0]+denseq[5,0,:]-denseq[1,0,:]-densin[0,0,:])-denseq[6,0,:]-denseq[5,0,:]
 
 
 
