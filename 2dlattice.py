@@ -51,17 +51,18 @@ dens=np.zeros((columns,rows,q),dtype=float) #initial condition zero velocity eve
 Angles=np.zeros(q)
 e=np.zeros((2,q),dtype=float)
 Totdens=np.zeros((columns,rows))
-AvV_sq=np.zeros((columns,rows,T))
+AvV_sq=np.zeros((columns,rows))
 Ext=np.ones((1,q))
 #Tdens=np.zeros((n,9,T))
 #denspos=np.zeros((columns,rows,q))
 dens_eq=np.zeros((columns,rows,q))
-AvV=np.zeros((columns,rows,T))
-H=np.zeros((n,1))
+Av=np.zeros((columns,rows,2))
+AvV=np.zeros((columns,rows,2))
+H=np.zeros((columns,rows))
 
 
 
-dens[:,0]=3 #Is this a good pick?
+dens[:,:,3]=3 #Is this a good pick?
 
 
 
@@ -81,38 +82,44 @@ R=initLattice(n,rows)
 #    denspos[:,:,k]=R #optimize this step.
 
 
-for j in range(0,q):
-    for t in range(0,T):
+
+for t in range(0,T):
+    for j in range(0,q):
+        for i in range(0,columns):
+              for k in range(0,rows):
 #         Tdens[i+dt,j,t]=dens[i+dt,j]
          
-          dens[:,:,j]=dens[e[0,j],e[1,j],j] 
+                dens[i+e[0,j],k+e[1,j],j] = dens[i,k,j]
           
-          if (dens[:,1,j]==np.ones(columns)).all():
+                if (dens[:,1,j]==np.ones(columns)).all():
               
-              if j>=6:                  
-               dens[:,:,j]=dens[e[0,j],e[1,j],j] 
-               dens[:,:,(j-4)]=dens[:,:,j]
+                   if j>=6:                  
+                     dens[i+e[0,j],k+e[1,j],j] = dens[i,k,j]
+                     dens[:,:,(j-4)]=dens[:,:,j]
              
-          elif (dens[:,1,j]==(rows-1)*np.ones(columns)).all():
+                elif (dens[:,1,j]==(rows-1)*np.ones(columns)).all():
               
-               if 1<j<5:
-                dens[:,:,j]=dens[e[0,j],e[1,j],j] 
-                dens[:,:,(j+4)]=dens[:,:,j]
+                  if 1<j<5:
+                    dens[i+e[0,j],k+e[1,j],j] = dens[i,k,j]
+                    dens[:,:,(j+4)]=dens[:,:,j]
                 
           
                 
             
         
-          Totdens=dens.sum(axis=2)
-
-          AvV[:,:,t]=np.dot(dens[:,:,j],np.transpose(e))/Totdens
-          AvV_sq[:,t]=(AvV[:,:,t]**2).sum(axis=1)
+                  Totdens=dens.sum(axis=2)
           
-          H[:,0]=AvV_sq[:,t]
+                  Av=dens[i,k,j]*e[:,j]/Totdens[i,k]
+                  AvV[i,k,:]=Av+AvV[i,k,:]
+#          AvV[:,:,0]=np.dot(dens,np.transpose(e))/Totdens
+#          AvV[:,:,1]=np.dot(dens,np.transpose(e))/Totdens
+                  AvV_sq[:,:]=(AvV[:,:,:]**2).sum(axis=2)
+          
+#          H[:,0]=AvV_sq[:,:]
 
-          dens_eq[:,:,t]=np.transpose(w)*Totdens[:,:,t]*(1+3*np.dot(AvV[:,:,t],e)+9/2*np.dot(AvV[:,:,t],e)**2-3/2*np.dot(H,Ext))
-         
-          dens[:,:,t+dt]=dens[:,:,t]-1/tau*(dens[:,:,t]-dens_eq[:,:,t])
+#          dens_eq[:,:,:]=np.transpose(w)*Totdens[:,:]*(1+3*np.dot(AvV[:,:,:],e)+9/2*np.dot(AvV[:,:,:],e)**2-3/2*np.dot(AvV_sq,Ext))
+#         
+#          dens[:,:,:]=dens[:,:,t]-1/tau*(dens[:,:,t]-dens_eq[:,:,t])
          
          
 
