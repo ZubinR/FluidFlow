@@ -23,12 +23,13 @@ e = np.array([[0,1,1,0,-1,-1,-1,0,1], [0,0,1,1,1,0,-1,-1,-1]]) # unit vectors
 weight = np.array([[4./9] , [1./36] , [1./9] , [1./36] , [1./9] , [1./36] , [1./9] , [1./36] , [1./9] ])
 ##############################################################################
 def equilibrium (rho,u):
-    for i in range(q):
-        eu = np.dot(e.T[i],u.transpose(1,0,2))
-        u2 = u[0]**2+u[1]**2
-        denseq = np.zeros((q,nx,ny))
-        denseq[i,:,:] = rho * weight[i] * (1. + 3. * eu + 0.5*9*eu**2 - 1.5*u2)
-        return denseq
+    denseq = np.zeros((q,nx,ny))
+    eu = np.dot(e.T,u.transpose(1,0,2))
+    u2 = u[0]**2+u[1]**2
+    for i in range(q):                      
+        denseq[i,:,:] = rho * weight[i] * (1. + 3. * eu[i] + 0.5*9*eu[i]**2 - 1.5*u2)
+    return denseq
+
 
 u0 = np.zeros((2,nx,ny)) # Initial condition
 denseq = equilibrium(1.0,u0) ; densin = denseq.copy()
