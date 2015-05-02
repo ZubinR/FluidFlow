@@ -34,18 +34,24 @@ u0 = np.zeros((2,nx,ny)) # Initial condition
 denseq = equilibrium(1.0,u0) ; densin = denseq.copy()
 
 mask=np.zeros((nx,ny))
-mask[:,(0,ny-1)]=1, mask = mask==1
-#index = np.transpose(np.nonzero(mask))
+mask[:,(0,ny-1)]=1
+mask = mask==1
+
 
 for time in range(maxiter):
     rho = np.sum(densin,axis=0)
     u = np.dot(e,densin.transpose(1,0,2))/rho    
-    
+    denseq = equilibrium(rho,u)
+#    u[0]+=0.05 
     
     for j in range(0,q): #Streaming w/ Bounce-Back
            densin[j,:,:] = np.roll(np.roll(densin[j,:,:],e[0,j],axis=0),e[1,j],axis=1)
            
-           densin[j,mask] = densin[j+4,mask]
+           if j>=6:
+             densin[j,mask] = densin[j-4,mask]
+           elif 1<j<5:
+             densin[j,mask] = densin[j+4,mask]  
+             
 #           u[j,index[0],index[1]]= -1* u[j,index[0],index[1]]
                   
 #               if j>=6:                  
@@ -58,8 +64,7 @@ for time in range(maxiter):
 ##                densin[j,:,:] = np.roll(np.roll(densin[j,:,:],e[0,j],axis=0),e[1,j],axis=1)
 #                densin[(j+4),:,ny]=densin[j,:,:]
             
-    denseq = equilibrium(rho,u)
-    u[0]+=0.05 
     
-    for j in range (q): #Relaxation
-        densin[j,:,:] = (1-1/tau)*densin[j,:,:] +denseq[j,:,:]
+    
+    #Relaxation
+           densin[j,:,:] = (1-1/tau)*densin[j,:,:] +denseq[j,:,:]
