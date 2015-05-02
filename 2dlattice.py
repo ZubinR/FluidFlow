@@ -19,8 +19,7 @@ def initLattice(nx,ny):
 #### MODEL PARAMETERS##########################################################
 nx = 50 ; ny = 20 ; q = 9 ; dt = 1 ; tau = 0.5 ; m = 1 ; maxiter = 10
 e = np.array([[0,1,1,0,-1,-1,-1,0,1], [0,0,1,1,1,0,-1,-1,-1]]) # unit vectors
-weight = np.array([[4./9], [1./36], [1./9], [1./36], [1./9], [1./36], [1./9],
-                   [1./36], [1./9]])
+weight = np.array([4./9, 1./36, 1./9, 1./36, 1./9, 1./36, 1./9, 1./36, 1./9])
 ###############################################################################
 def equilibrium (rho,u):
     denseq = np.zeros((q,nx,ny))
@@ -42,7 +41,7 @@ mask = mask==1
 for time in range(maxiter):    
     for j in range(q): #Streaming w/ Bounce-Back
         densin[j,:,:] = np.roll(np.roll(densin[j,:,:],e[0,j],axis=0),e[1,j],
-                        axis=1)
+                                axis=1)
         if 0<j<=4:
             densin[j,mask] = densin[j+4,mask]
         elif j>4:
