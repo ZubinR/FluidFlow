@@ -34,31 +34,41 @@ def equilibrium (rho,u):
 def Velx(y,a):  
     return a*(((ny-1)/2)**2-(y-(ny-1)/2)**2)
 
-
 u0 = np.zeros((2,nx,ny));ut0=u0[0] # Initial condition
 denseq = equilibrium(1.0,u0) 
 visc=(2*tau-1)/6
 densin = denseq.copy()
-mask=np.zeros((nx,ny))
+mask = np.ones((nx,ny), dtype=bool)
+mask[:,0]=False
+mask[:,ny-1]=False
 
-mask[:,(0,ny-1)]=1
-mask = mask==1
-
-
+up=np.arange(2,4)
+down=np.arange(6,8)
+mid =np.array([[0],[1],[5]])
 
 for time in range(maxiter):    
-    for j in range(q): #Streaming w/ Bounce-Back     
-        densin[j,:,:] = np.roll(np.roll(densin[j,:,:],e[0,j],axis=0),e[1,j],
+    for j in range(q): #Streaming w/ Bounce-Back
+        densbulk = densin[j,mask].reshape(nx,ny-2) 
+        densbulk = np.roll(np.roll(densbulk,e[0,j],axis=0),e[1,j],
                                 axis=1)
-        if 1<j<5:
-            densin[j,mask] = densin[j+4,mask]
-        elif j>5:
-            densin[j,mask] = densin[j-4,mask]
+        densin[mid,:,[0,ny-1]]=0 # Set densities that would move into boundary at next step to zero.
+        densin[down,:,0]=0
+        densin[up,:,ny-1]=0
 
+        
+        densin[up,:,0]=densin[down,:,1] # Assign density of oppposite velocity at boundary nodes.
+        densin[down,:,ny-1]=densin[up,:,ny-2]
+        
+        densin[j,:,1:-1]=densbulk
+#        if 1<j<5:
+#            densin[j,mask] = densin[j+4,mask]
+#        elif j>5:
+#            densin[j,mask] = densin[j-4,mask]
 
+        
     rho = np.sum(densin,axis=0)
-
-    u = np.dot(e,densin.transpose(1,0,2))/rho   
+    
+    u = np.dot(e,densin.transpose(1,0,2))/rho  # densbulk or densin? 
 
     u[0]+=du
     
