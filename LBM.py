@@ -18,7 +18,7 @@ import scipy.optimize as opt
 #    return R
 
 #### MODEL PARAMETERS##########################################################
-nx = 50 ; ny = 20 ; q = 9 ; dt = 1 ; tau = 1.85 ; m = 1 ; maxiter = 15; du = 0.005
+nx = 50 ; ny = 20 ; q = 9 ; dt = 1 ; tau = 1.85 ; m = 1 ; maxiter = 3000; du = 0.005
 e = np.array([[0,1,1,0,-1,-1,-1,0,1], [0,0,1,1,1,0,-1,-1,-1]]) # unit vectors
 weight = np.array([4./9, 1./9, 1./36, 1./9, 1./36, 1./9, 1./36, 1./9, 1./36])
 ###############################################################################
@@ -65,7 +65,8 @@ for time in range(maxiter):
         
 #    densin[up,:,0]=densin[down,:,1] # Assign density of oppposite velocity at boundary nodes.
 #    densin[down,:,ny-1]=densin[up,:,ny-2]
-        
+    densin[up,:,1]=densin[up,:,1]+densin[down,:,1]
+    densin[down,:,ny-2]=densin[down,:,ny-2]+densin[up,:,ny-2]      
     rho = np.sum(densin,axis=0)
     
     u = np.dot(e,densin.transpose(1,0,2))/rho  # densbulk or densin? 
@@ -81,8 +82,7 @@ for time in range(maxiter):
     for j in range (q): #Relaxation
         densin[j,:,1:-1] = (1-1/tau)*densin[j,:,1:-1] + denseq[j,:,1:-1]/tau
     
-    densin[up,:,1]=densin[up,:,1]+densin[down,:,1]
-    densin[down,:,ny-2]=densin[down,:,ny-2]+densin[up,:,ny-2]    
+      
     densin[down,:,1]=0
     densin[up,:,ny-2]=0
 ##Steady State condition        
