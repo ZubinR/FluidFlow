@@ -20,7 +20,7 @@ import scipy.optimize as opt
 #### MODEL PARAMETERS##########################################################
 nx = 50 ; ny = 20 ; q = 9 ; dt = 1 ; tau = 1.85 ; m = 1 ; maxiter = 15; du = 0.005
 e = np.array([[0,1,1,0,-1,-1,-1,0,1], [0,0,1,1,1,0,-1,-1,-1]]) # unit vectors
-weight = np.array([4./9, 1./36, 1./9, 1./36, 1./9, 1./36, 1./9, 1./36, 1./9])
+weight = np.array([4./9, 1./9, 1./36, 1./9, 1./36, 1./9, 1./36, 1./9, 1./36])
 ###############################################################################
 def equilibrium (rho,u):
     denseq = np.zeros((q,nx,ny))
@@ -35,15 +35,16 @@ def Velx(y,a):
     return a*(((ny-1)/2)**2-(y-(ny-1)/2)**2)
 
 u0 = np.zeros((2,nx,ny));ut0=u0[0] # Initial condition
-denseq = equilibrium(1.0,u0) 
+rho0=np.ones((nx,ny))
+denseq = equilibrium(rho0,u0) 
 visc=(2*tau-1)/6
 densin = denseq.copy()
 mask = np.ones((nx,ny), dtype=bool)
 mask[:,0]=False
 mask[:,ny-1]=False
 
-up=np.arange(2,4)
-down=np.arange(6,8)
+up=np.arange(2,5)
+down=np.arange(6,9)
 mid =np.array([[0],[1],[5]])
 
 for time in range(maxiter):    
@@ -51,13 +52,6 @@ for time in range(maxiter):
         densbulk = densin[j,mask].reshape(nx,ny-2) 
         densbulk = np.roll(np.roll(densbulk,e[0,j],axis=0),e[1,j],
                                 axis=1)
-        densin[mid,:,[0,ny-1]]=0 # Set densities that would move into boundary at next step to zero.
-        densin[down,:,0]=0
-        densin[up,:,ny-1]=0
-
-        
-        densin[up,:,0]=densin[down,:,1] # Assign density of oppposite velocity at boundary nodes.
-        densin[down,:,ny-1]=densin[up,:,ny-2]
         
         densin[j,:,1:-1]=densbulk
 #        if 1<j<5:
@@ -65,6 +59,12 @@ for time in range(maxiter):
 #        elif j>5:
 #            densin[j,mask] = densin[j-4,mask]
 
+#    densin[mid,:,[0,ny-1]]=0 # Set densities that would move into boundary at next step to zero.
+    
+
+        
+#    densin[up,:,0]=densin[down,:,1] # Assign density of oppposite velocity at boundary nodes.
+#    densin[down,:,ny-1]=densin[up,:,ny-2]
         
     rho = np.sum(densin,axis=0)
     
@@ -72,14 +72,19 @@ for time in range(maxiter):
 
     u[0]+=du
     
-    print(u[0,1,1])       
+    print(rho[1,1])       
     denseq = equilibrium(rho,u)
 
     
            
 #=======    
     for j in range (q): #Relaxation
-        densin[j,:,:] = (1-1/tau)*densin[j,:,:] + denseq[j,:,:]/tau
+        densin[j,:,1:-1] = (1-1/tau)*densin[j,:,1:-1] + denseq[j,:,1:-1]/tau
+    
+    densin[up,:,1]=densin[up,:,1]+densin[down,:,1]
+    densin[down,:,ny-2]=densin[down,:,ny-2]+densin[up,:,ny-2]    
+    densin[down,:,1]=0
+    densin[up,:,ny-2]=0
 ##Steady State condition        
 #    u1=u[0]
 #    if np.sum(ut1-ut0)/np.sum(ut1)<10:
