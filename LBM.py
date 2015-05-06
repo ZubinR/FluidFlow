@@ -43,15 +43,19 @@ down=np.arange(6,9)
 mid =np.array([[0],[1],[5]])
 
 # Main time loop
-for time in range(maxiter):    
+for time in range(maxiter):
+    densupbound=densin[down,:,1]
+    denslowbound=densin[up,:,ny-2]
+    densin[down,:,1]=0 # Forces densities with velocities away from the bulk to zero.
+    densin[up,:,ny-2]=0    
     for j in range(q): #Streaming of the bulk.
         densbulk = densin[j,mask].reshape(nx,ny-2) 
         densbulk = np.roll(np.roll(densbulk,e[0,j],axis=0),e[1,j],
                                 axis=1)       
         densin[j,:,1:-1]=densbulk
 
-    densin[up,:,1]=densin[up,:,1]+densin[down,:,1] # Assigns density opposite velocity at pre-boundary nodes.
-    densin[down,:,ny-2]=densin[down,:,ny-2]+densin[up,:,ny-2]      
+    densin[up,:,1]=densin[up,:,1]+densupbound # Assigns density opposite velocity at pre-boundary nodes.
+    densin[down,:,ny-2]=densin[down,:,ny-2]+denslowbound      
     
     rho = np.sum(densin,axis=0)
     u = np.dot(e,densin.transpose(1,0,2))/rho  
@@ -62,13 +66,12 @@ for time in range(maxiter):
     for j in range (q): #Relaxation
         densin[j,:,1:-1] = (1-1/tau)*densin[j,:,1:-1] + denseq[j,:,1:-1]/tau
           
-    densin[down,:,1]=0 # Forces densities with velocities away from the bulk to zero.
-    densin[up,:,ny-2]=0
+    
 Re =np.sum(u)*ny/(nx*ny*visc)
 #plotting velocity profile 
 U=u[0,25,:]
 y=np.arange(ny)  
 a,cov=opt.curve_fit(Velx,y,U,0.0,None)    
 plt.plot(U,y, 'r+', Velx(y,a),y) 
-plt.xlabel('Horizontal Velocity') ; plt.ylabel('y') ;plt.title( 'Poisseuile Flow')
+plt.xlabel('Horizontal Velocity') ; plt.ylabel('y') ;plt.title( 'Poisseuile Flow, '"Re=%g"%Re)
 curve=curvature(U)
