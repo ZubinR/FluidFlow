@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import scipy.optimize as opt
 
 #### MODEL PARAMETERS##########################################################
-nx = 50 ; ny = 20 ; q = 9 ; dt = 1 ; tau = 1.85 ; maxiter = 3000; du = 0.005
+nx = 50 ; ny = 20 ; q = 9 ; dt = 1 ; tau = 1.85 ; maxiter = 100; du = 0.005
 e = np.array([[0,1,1,0,-1,-1,-1,0,1], [0,0,1,1,1,0,-1,-1,-1]]) # unit vectors
 weight = np.array([4./9, 1./9, 1./36, 1./9, 1./36, 1./9, 1./36, 1./9, 1./36])
 ###############################################################################
@@ -45,17 +45,16 @@ mid =np.array([[0],[1],[5]])
 # Main time loop
 for time in range(maxiter):
     densupbound=densin[down,:,1]
-    denslowbound=densin[up,:,ny-2]
+    denslowbound=densin[up,:,-2]
     densin[down,:,1]=0 # Forces densities with velocities away from the bulk to zero.
-    densin[up,:,ny-2]=0    
+    densin[up,:,-2]=0    
     for j in range(q): #Streaming of the bulk.
         densbulk = densin[j,mask].reshape(nx,ny-2) 
-        densbulk = np.roll(np.roll(densbulk,e[0,j],axis=0),e[1,j],
-                                axis=1)       
+        densbulk = np.roll(np.roll(densbulk,e[0,j],axis=0),e[1,j],axis=1)       
         densin[j,:,1:-1]=densbulk
 
     densin[up,:,1]=densin[up,:,1]+densupbound # Assigns density opposite velocity at pre-boundary nodes.
-    densin[down,:,ny-2]=densin[down,:,ny-2]+denslowbound      
+    densin[down,:,-2]=densin[down,:,ny-2]+denslowbound      
     
     rho = np.sum(densin,axis=0)
     u = np.dot(e,densin.transpose(1,0,2))/rho  
@@ -69,8 +68,13 @@ for time in range(maxiter):
     
 Re =np.sum(u)*ny/(nx*ny*visc)
 #plotting velocity profile 
+
+#y=np.linspace(0,ny,50)  
+#x = np.linspace(0,nx,100) ; X,Y=np.meshgrid(x,y)
+#
+#plt.quiver(X,Y,u[0],u[1],pivot='middle',angles='xy',scale=10,color='r')
 U=u[0,25,:]
-y=np.arange(ny)  
+y=np.arange(ny)
 a,cov=opt.curve_fit(Velx,y,U,0.0,None)    
 plt.plot(U,y, 'r+', Velx(y,a),y) 
 plt.xlabel('Horizontal Velocity') ; plt.ylabel('y') ;plt.title( 'Poisseuile Flow, '"Re=%g"%Re)
