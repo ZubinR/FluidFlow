@@ -73,10 +73,10 @@ for time in range(maxiter):
     densin[up,:,0] = densin[down,:,0] #flip densities on pipe and obstacle boundaries excluding the corners.
     densin[down, :, ny-1] = densin[up, :, ny-1]
     
-    densin[left,obx,(oby+1):(oby+ly-1)]=densin[right,obx,(oby+1):(oby+ly-1)]
-    densin[right,(obx+lx-1),(oby+1):(oby+ly-1)]=densin[left,(obx+lx-1),(oby+1):(oby+ly-1)]
-    densin[up,(obx+1):(obx+lx-1),(oby+ly-1)]=densin[down,(obx+1):(obx+lx-1),(oby+ly-1)]
-    densin[down,(obx+1):(obx+lx-1),oby]=densin[up,(obx+1):(obx+lx-1),oby]
+    densin[right,obx,(oby+1):(oby+ly-1)]=densin[left,obx,(oby+1):(oby+ly-1)]
+    densin[left,(obx+lx-1),(oby+1):(oby+ly-1)]=densin[right,(obx+lx-1),(oby+1):(oby+ly-1)]
+    densin[down,(obx+1):(obx+lx-1),(oby+ly-1)]=densin[up,(obx+1):(obx+lx-1),(oby+ly-1)]
+    densin[up,(obx+1):(obx+lx-1),oby]=densin[down,(obx+1):(obx+lx-1),oby]
     
 #    densin[left[2],obx,oby]=densin[right[2],obx,oby] #flip densities on obstacle corners in only 1 direction
 #    densin[left[1],obx,oby]=densin[right[1],obx,oby]
