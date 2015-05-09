@@ -31,7 +31,7 @@ def curvature(f):
     
 mask = np.ones((nx,ny),dtype=bool)
 mask[:,[0,-1]]=False
-#mask[obx-lx:obx+lx,oby-ly:oby+ly] =False
+mask[obx-lx:obx+lx,oby-ly:oby+ly] =False
 notbulk= ~mask
 wall = np.zeros((q,nx,ny),dtype=bool) # Will contain the crossed boundary points.
 
@@ -69,17 +69,17 @@ for time in range(maxiter):
     for j in range (q): #Relaxation
         densin[j,mask] = (1-1/tau)*densin[j,mask] + denseq[j,mask]/tau
 #
-U=u[0,-1,:]
-y=np.arange(ny)
-a,cov=opt.curve_fit(Velx,y,U,0.0,None)    
-plt.plot(U,y, 'r+', Velx(y,a),y) 
-plt.xlabel('Horizontal Velocity') ; plt.ylabel('y') ;plt.title( 'Poisseuile Flow')
-curve=curvature(U)
+#U=u[0,-1,:]
+#y=np.arange(ny)
+#a,cov=opt.curve_fit(Velx,y,U,0.0,None)    
+#plt.plot(U,y, 'r+', Velx(y,a),y) 
+#plt.xlabel('Horizontal Velocity') ; plt.ylabel('y') ;plt.title( 'Poisseuile Flow')
+#curve=curvature(U)
 #
-#v = np.transpose(u)
-#Q = quiver(v[1:-1,:,0], v[1:-1,:,1])
-#l,r,b,t = axis()
-#dx, dy = r-l, t-b
-#axis([l-0.05*dx, r+0.05*dx, b-0.05*dy, t+0.05*dy])
-#title('velocity profile rectangular obstacle')
-#show()  
+v = np.transpose(u)
+Q = quiver(v[1:-1,:,0], v[1:-1,:,1])
+l,r,b,t = axis()
+dx, dy = r-l, t-b
+axis([l-0.05*dx, r+0.05*dx, b-0.05*dy, t+0.05*dy])
+title('velocity profile rectangular obstacle')
+show()  

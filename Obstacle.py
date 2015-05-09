@@ -9,6 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.optimize as opt
 from pylab import *
+from matplotlib import animation
 
 #### MODEL PARAMETERS##########################################################
 nx = 50 ; ny = 20
@@ -16,7 +17,7 @@ obx= nx/2; oby = ny/2  #coordinates of bottom left rectangular obstacle point
 lx=3; ly=5 
 q = 9 
 dt = 1 ; tau = 1.85
-maxiter = 3000
+maxiter = 100
 du = 0.005
 e = np.array([[0,1,1,0,-1,-1,-1,0,1], [0,0,1,1,1,0,-1,-1,-1]]) # unit vectors
 weight = np.array([4./9, 1./9, 1./36, 1./9, 1./36, 1./9, 1./36, 1./9, 1./36])
@@ -54,6 +55,11 @@ down=np.arange(6,9)
 left =np.array([4,5,6])
 right=np.array([1,2,8])
 u = np.ndarray((nx,ny),dtype=float)
+Ux= np.zeros((maxiter,nx,ny))
+Uy= np.zeros((maxiter,nx,ny))
+#mask2 = np.ones((nx,ny), dtype=bool)
+#mask2[25:25+lx,10:10+ly] =False
+#mask2[:,[0,ny-1]]=False
 # Main time loop
 for time in range(maxiter): 
  
@@ -74,7 +80,9 @@ for time in range(maxiter):
 #    print 'a', u[0,:,1:ny-2]
 #    print 'b', u[1,:,1:ny-2]
 #    raw_input()
-    u[0,:,:]+=du    
+    u[0,mask2]+=du
+    Ux[time:,:]=u[0,:,:]
+    Uy[time,:,:]=u[1,:,:]    
 #    print(rho[1,1]) # Checks density conservation
     denseq = equilibrium(rho,u)
  
@@ -83,18 +91,49 @@ for time in range(maxiter):
                  
 #tempvel = np.copy(u)
 # tempvel[outside] = [0.0, 0.0]
+                 
+
+
 v = np.transpose(u)
 Q = quiver(v[1:-1,:,0], v[1:-1,:,1])
 l,r,b,t = axis()
 dx, dy = r-l, t-b
 axis([l-0.05*dx, r+0.05*dx, b-0.05*dy, t+0.05*dy])
 title('velocity profile rectangular obstacle')
-show()    
-Re =np.sum(u)*ny/(nx*ny*visc)
-##plotting velocity profile 
+show()
+
+Re =np.sum(u)*ny/(nx*ny*visc)  
+
+#plotting velocity profile 
 U=u[0,obx,:]
 y=np.arange(ny)  
 a,cov=opt.curve_fit(Velx,y,U,0.0,None)   
 plt.plot(U,y, 'r+', Velx(y,a),y) 
 plt.xlabel('Horizontal Velocity') ; plt.ylabel('y') ;plt.title(  'Poiseuille Flow, '"Re=%g"%Re)
 curve=curvature(U)
+
+##########Animation#########################  
+Uinx=Ux[0,:,:]
+Uiny=Uy[0,:,:]
+
+fig, ax = plt.subplots(1,1)
+Q = ax.quiver(Uinx, Uiny)
+
+ax.set_xlim(0, nx)
+ax.set_ylim(0,ny)
+
+
+def animate(i,Q,Ux,Uy):
+    Uinx=Ux[i,:,:]
+    Uiny=Uy[i,:,:]
+    Q.set_UVC(Uinx,Uiny)
+
+    return Q,
+
+anim = animation.FuncAnimation(fig, animate, frames=30, fargs=(Q, Ux, Uy),
+                               interval=60, blit=True)                 
+
+title('velocity profile rectangular obstacle')
+show()    
+
+
