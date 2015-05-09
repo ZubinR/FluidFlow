@@ -28,6 +28,13 @@ def curvature(f):
     for i in range (1,len(f)-1):    
         fdiff[i-1] = dx**(-2) *(f[i-1] + f[i+1] -2*f[i])
     return fdiff [1]  
+
+#Initializing parameters/matrices
+visc=(2*tau-1)/6
+u0 = np.zeros((2,nx,ny)) 
+rho0=np.ones((nx,ny))
+denseq = equilibrium(rho0,u0) 
+densin = denseq.copy()
     
 mask = np.ones((nx,ny),dtype=bool)
 mask[:,[0,-1]]=False
@@ -39,11 +46,6 @@ for j in range(q):
     wall[j,:,:] = np.logical_and(notbulk,
                                  np.roll(np.roll(mask,e[j,0],axis=0),e[j,1],axis=1))
     
-visc=(2*tau-1)/6
-u0 = np.zeros((2,nx,ny)) # Initial condition
-rho0=np.ones((nx,ny))
-denseq = equilibrium(rho0,u0) 
-densin = denseq.copy()
 qflip = np.mod((np.arange(q) +3),8)+1 ; qflip[0]=0
 
 index = [] # Contains indices of boundary points adjacent to bulk points.
