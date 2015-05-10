@@ -87,34 +87,29 @@ plt.plot(U,y, 'r+', Velx(y,a),y)
 plt.xlabel('Horizontal Velocity') ; plt.ylabel('y') ;plt.title( 'Poiseuille Flow, '"Re=%g"%Re)
 curve=curvature(U)
 plt.show()
-#
-Vinx=np.transpose(Ux[-1,:,:]) 
-Viny=np.transpose(Uy[-1,:,:])       
+
+       
 v = np.transpose(u)
 fig, ax = plt.subplots(1,1)
 plt.imshow(v[1:-1,:,0]**2+v[1:-1,:,1]**2)
 plt.colorbar()
-Q = ax.quiver(Vinx[1:-1,:], Viny[1:-1,:])
+Q = ax.quiver(v[1:-1,:,0], v[1:-1,:,1])
 ax.set_xlim(0, nx-1)
 ax.set_ylim(0, ny-2)
-
-plt.show()
+show()
 
 ##########Animation##########
 fig, ax = plt.subplots(1,1)
+Vinx=np.transpose(Ux[0,:,:]) 
+Viny=np.transpose(Uy[0,:,:])
 im=ax.imshow(Vinx[1:-1,:]**2+Viny[1:-1,:]**2)
 
-#
 def animate(i,im,Ux,Uy):
     
     Vinx=np.transpose(Ux[i,:,:])
     Viny=np.transpose(Uy[i,:,:])
     im.set_array(Vinx[1:-1,:]**2+Viny[1:-1,:]**2)
-    im.autoscale()
-    
-    
-#    Q.set_UVC(Vinx,Viny)
-    
+    im.autoscale()    
     return im
     
 anim = animation.FuncAnimation(fig, animate, np.arange(maxiter),fargs=(im,Ux, Uy),
