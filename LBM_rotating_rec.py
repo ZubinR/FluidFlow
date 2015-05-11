@@ -32,16 +32,25 @@ def curvature(f):
 
 #Initializing parameters/matrices
 visc=(2*tau-1)/6
-u0 = np.zeros((2,nx,ny)) 
+u0 = np.zeros((2,nx,ny))
 rho0=np.ones((nx,ny))
 denseq = equilibrium(rho0,u0) 
-densin = denseq.copy()
+densold = denseq.copy()
+densnew = np.zeros((q,nx,ny))
+
 Ux=np.zeros((maxiter,nx,ny))
 Uy=np.zeros((maxiter,nx,ny))
-    
+
+v0=np.zeros((2,2*lx,2*ly)) 
+
+F=np.zeros((q,2*lx,2*ly))
+F[:,[0,-1],:]=1   ; F[:,:,[0,-1]]=1
+
 mask = np.ones((nx,ny),dtype=bool)
 mask[:,[0,-1]]=False
-mask[obx-lx:obx+lx,oby-ly:oby+ly] =False
+mask[obx-lx:obx+lx,oby-ly:oby+ly] = False
+objmask = np.zeros((nx,ny),dtype=bool)
+objmask[obx-lx:obx+lx,[oby-ly,oby+ly]]=True   ; objmask[[obx-lx,obx+lx],oby-ly:oby+ly+1]=True
 notbulk= ~mask
 wall = np.zeros((q,nx,ny),dtype=bool) # Will contain the crossed boundary points.
 
@@ -51,31 +60,41 @@ for j in range(q):
     
 qflip = np.mod((np.arange(q) +3),8)+1 ; qflip[0]=0
 
+objindex = []
+[k,l]= objmask[:,:].nonzero()
+objindex.append([k,l])
+
 index = [] # Contains indices of boundary points adjacent to bulk points.
+
 for j in range(q):
-    [x,y]=wall[j,:,:].nonzero()  
+    [x,y]=wall[j,:,:].nonzero()
     index.append([x,y])
 
 for time in range(maxiter):
 
     for j in range(q): 
-        densin[j,:,:] = np.roll(np.roll(densin[j,:,:],e[j,0],axis=0),
+        densnew[j,:,:] = np.roll(np.roll(densold[j,:,:],e[j,0],axis=0),
                                 e[j,1],axis=1)       
     for j in range(q):
-        densin[j,index[j][0],index[j][1]] = densin[qflip[j],index[j][0],
+        densnew[j,index[j][0],index[j][1]] = densnew[qflip[j],index[j][0],
                                                    index[j][1]] 
     
-    rho = np.sum(densin,axis=0)
-    u = np.dot(e.T,densin.transpose(1,0,2))/rho  
-    u[0,mask]+=du    
+    rho = np.sum(densnew,axis=0)
+    u = np.dot(e.T,densnew.transpose(1,0,2))/rho  
+    u[0,mask]+=du
+    u[1,objmask] = 0
+    u[0,objmask] = u[0,obx,oby] 
+#    v1 = u[:,objmask].reshape(2,2*lx,2*ly)    
+#    acc =v1-v0
+#    v0=v1    
     Ux[time,:,:]=u[0,:,:]
     Uy[time,:,:]=u[1,:,:]
 #    print(rho[1,1]) # Checks density conservation
     denseq = equilibrium(rho,u)
  
     for j in range (q): #Relaxation
-        densin[j,mask] = (1-1/tau)*densin[j,mask] + denseq[j,mask]/tau
-#
+        densnew[j,mask] = (1-1/tau)*densnew[j,mask] + densnew[j,mask]/tau
+        F[j,objmask]=2*(densold[j,objmask]- densnew[qflip[j],objmask] - 2*(weight[j]*3*rho[objmask]*np.dot(e[j,:],u.transpose(1,0,2))))*e[j,:]
         
 #####Plotting velocity profiles#####        
 U=u[0,obx,:]
@@ -104,16 +123,16 @@ Vinx=np.transpose(Ux[0,:,:])
 Viny=np.transpose(Uy[0,:,:])
 im=ax.imshow(Vinx[1:-1,:]**2+Viny[1:-1,:]**2)
 
-def animate(i,im,Ux,Uy):
-    
-    Vinx=np.transpose(Ux[i,:,:])
-    Viny=np.transpose(Uy[i,:,:])
-    im.set_array(Vinx[1:-1,:]**2+Viny[1:-1,:]**2)
-    im.autoscale()    
-    return im
-    
-anim = animation.FuncAnimation(fig, animate, np.arange(maxiter),fargs=(im,Ux, Uy),
-                               interval=100, blit=False, repeat=True)    
-title('velocity profile rectangular obstacle')
-show() 
+#def animate(i,im,Ux,Uy):
+#    
+#    Vinx=np.transpose(Ux[i,:,:])
+#    Viny=np.transpose(Uy[i,:,:])
+#    im.set_array(Vinx[1:-1,:]**2+Viny[1:-1,:]**2)
+#    im.autoscale()    
+#    return im
+#    
+#anim = animation.FuncAnimation(fig, animate, np.arange(maxiter),fargs=(im,Ux, Uy),
+#                               interval=100, blit=False, repeat=True)    
+#title('velocity profile rectangular obstacle')
+#show() 
  
