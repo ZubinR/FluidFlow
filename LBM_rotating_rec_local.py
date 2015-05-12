@@ -42,7 +42,8 @@ densnew = np.zeros((q,nx,ny))
 
 Ux=np.zeros((maxiter+1,nx,ny))
 Uy=np.zeros((maxiter+1,nx,ny))
-
+uold = np.zeros((2,nx,ny))
+unew = np.zeros((2,nx,ny))
 
 Fy=Fx=np.zeros((q,nx,ny))
 Ftot=np.zeros((2))
@@ -74,7 +75,7 @@ for time in range(maxiter):
     ub[0,objmask]=Ux[time,objmask]
     ub[1,objmask]=Uy[time,objmask]
     eub = np.dot(e,ub.transpose(1,0,2))
-    uold=u
+#    uold=u
 #    print(densnew[5,2,2]-densold[5,2,2])
     for j in range(q): 
         densnew[j,:,:]=np.roll(np.roll(densold[j,:,:],e[j,0],axis=0),e[j,1],axis=1)
@@ -102,18 +103,17 @@ for time in range(maxiter):
     
     Ftot[0]=sum(Fx); Ftot[1]=sum(Fy)
     F = 0.5 * (Ftot+Ftot0)
-
-    utemp=[]
-    unew=
-    utemp.extend((uold,u,unew))
-#    Ftot0=Ftot
+    Ftot0=Ftot
+    utemp = np.array([uold, u, unew])# 4D 
+    
+#    
     if time==0:
-        Ux[time+1,objmask]=2*Ftot[0]
-        Uy[time+1,objmask]=2*Ftot[1]
+        utemp[-1,:,objmask]=2*F
+#        Uy[-1,:,objmask]=2*F[1]
     else:    
-        Ux[time+1,objmask]=2*Ftot[0] #+Ux[time-1,objmask]
-        Uy[time+1,objmask]=2*Ftot[1] #Uy[time-1,objmask]+
-##    
+        utemp[-1,:,objmask]=2*F +utemp[0,:,objmask]
+#        Uy[-1,:,objmask]=2*F[1] #Uy[time-1,objmask]+
+    utemp=np.roll(utemp,1,axis=0)    ; utemp[-1]= 0 ; u = utemp[1].copy()
 #    u[0,objmask]=Ux[time+1,objmask]
 #    u[1,objmask]=Uy[time+1,objmask]
 #    
