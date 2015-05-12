@@ -32,25 +32,26 @@ def curvature(f):
 
 #Initializing parameters/matrices
 visc=(2*tau-1)/6
-u0 = np.zeros((2,nx,ny))
-rho0=np.ones((nx,ny))
-denseq = equilibrium(rho0,u0) 
+u = np.zeros((2,nx,ny))
+ub = np.zeros((2,nx,ny))
+rho=np.ones((nx,ny))
+denseq = equilibrium(rho,u) 
 densold = denseq.copy()
 densnew = np.zeros((q,nx,ny))
 
-Ux=np.zeros((maxiter,nx,ny))
-Uy=np.zeros((maxiter,nx,ny))
 
-v0=np.zeros((2,2*lx,2*ly)) 
+Ux=np.zeros((maxiter+1,nx,ny))
+Uy=np.zeros((maxiter+1,nx,ny))
 
-F=np.zeros((q,2*lx,2*ly))
-F[:,[0,-1],:]=1   ; F[:,:,[0,-1]]=1
 
+Fy=Fx=np.zeros((q,nx,ny))
+Ftot=np.zeros((2))
+Ftot0=np.zeros((2))
 mask = np.ones((nx,ny),dtype=bool)
 mask[:,[0,-1]]=False
 mask[obx-lx:obx+lx,oby-ly:oby+ly] = False
 objmask = np.zeros((nx,ny),dtype=bool)
-objmask[obx-lx:obx+lx,[oby-ly,oby+ly]]=True   ; objmask[[obx-lx,obx+lx],oby-ly:oby+ly+1]=True
+objmask[obx-lx:obx+lx,[oby-ly,oby+ly-1]]=True   ; objmask[[obx-lx,obx+lx-1],oby-ly:oby+ly]=True
 notbulk= ~mask
 wall = np.zeros((q,nx,ny),dtype=bool) # Will contain the crossed boundary points.
 
@@ -60,69 +61,95 @@ for j in range(q):
     
 qflip = np.mod((np.arange(q) +3),8)+1 ; qflip[0]=0
 
-objindex = []
-[k,l]= objmask[:,:].nonzero()
-objindex.append([k,l])
 
 index = [] # Contains indices of boundary points adjacent to bulk points.
-
 for j in range(q):
     [x,y]=wall[j,:,:].nonzero()
     index.append([x,y])
+    
+Rcom=np.array([obx,oby])    
 
 for time in range(maxiter):
-
+#    print(time)
+    ub[0,objmask]=Ux[time,objmask]
+    ub[1,objmask]=Uy[time,objmask]
+    eub = np.dot(e,ub.transpose(1,0,2))
+    uold=u
+#    print(densnew[5,2,2]-densold[5,2,2])
     for j in range(q): 
-        densnew[j,:,:] = np.roll(np.roll(densold[j,:,:],e[j,0],axis=0),
-                                e[j,1],axis=1)       
+        densnew[j,:,:]=np.roll(np.roll(densold[j,:,:],e[j,0],axis=0),e[j,1],axis=1)
+    print(densnew[5,4,2]-densold[5,4,2])
     for j in range(q):
         densnew[j,index[j][0],index[j][1]] = densnew[qflip[j],index[j][0],
-                                                   index[j][1]] 
-    
+                                                   index[j][1]] - 6 * weight[j]*rho[index[j][0],index[j][1]]*eub[j,index[j][0],index[j][1]]
+#    
     rho = np.sum(densnew,axis=0)
     u = np.dot(e.T,densnew.transpose(1,0,2))/rho  
     u[0,mask]+=du
-    u[1,objmask] = 0
-    u[0,objmask] = u[0,obx,oby] 
-#    v1 = u[:,objmask].reshape(2,2*lx,2*ly)    
-#    acc =v1-v0
-#    v0=v1    
+#
+#
+#   
     Ux[time,:,:]=u[0,:,:]
     Uy[time,:,:]=u[1,:,:]
-#    print(rho[1,1]) # Checks density conservation
+##    print(rho[1,1]) # Checks density conservation
     denseq = equilibrium(rho,u)
- 
     for j in range (q): #Relaxation
-        densnew[j,mask] = (1-1/tau)*densnew[j,mask] + densnew[j,mask]/tau
-        F[j,objmask]=2*(densold[j,objmask]- densnew[qflip[j],objmask] - 2*(weight[j]*3*rho[objmask]*np.dot(e[j,:],u.transpose(1,0,2))))*e[j,:]
-        
-#####Plotting velocity profiles#####        
-U=u[0,obx,:]
-Re =np.sum(u)*ny/(nx*ny*visc)
-y=np.arange(ny)
-a,cov=opt.curve_fit(Velx,y,U,0.0,None) 
-plt.figure()
-plt.plot(U,y, 'r+', Velx(y,a),y) 
-plt.xlabel('Horizontal Velocity') ; plt.ylabel('y') ;plt.title( 'Poiseuille Flow, '"Re=%g"%Re)
-curve=curvature(U)
-plt.show()
+        densnew[j,mask] = (1-1/tau)*densnew[j,mask] + denseq[j,mask]/tau
+#    
+        Fx[j,objmask]=2*(densold[j,objmask]- densnew[j,objmask] - 2*(weight[j]*3*rho[objmask]*eub[j,objmask]))*e[j,0]
+        Fy[j,objmask]=2*(densold[j,objmask]- densnew[j,objmask] - 2*(weight[j]*3*rho[objmask]*eub[j,objmask]))*e[j,1]
+#    
+    
+    Ftot[0]=sum(Fx); Ftot[1]=sum(Fy)
+    F = 0.5 * (Ftot+Ftot0)
 
-       
-v = np.transpose(u)
-fig, ax = plt.subplots(1,1)
-plt.imshow(v[1:-1,:,0]**2+v[1:-1,:,1]**2)
-plt.colorbar()
-Q = ax.quiver(v[1:-1,:,0], v[1:-1,:,1])
-ax.set_xlim(0, nx-1)
-ax.set_ylim(0, ny-2)
-show()
+    utemp=[]
+    unew=
+    utemp.extend((uold,u,unew))
+#    Ftot0=Ftot
+    if time==0:
+        Ux[time+1,objmask]=2*Ftot[0]
+        Uy[time+1,objmask]=2*Ftot[1]
+    else:    
+        Ux[time+1,objmask]=2*Ftot[0] #+Ux[time-1,objmask]
+        Uy[time+1,objmask]=2*Ftot[1] #Uy[time-1,objmask]+
+##    
+#    u[0,objmask]=Ux[time+1,objmask]
+#    u[1,objmask]=Uy[time+1,objmask]
+#    
+#    Rcom+=u[:,obx,oby]
+#    
+#    objmask=np.roll(np.roll(objmask,int(u[0,obx,oby]),axis=0),int(u[1,obx,oby]),axis=1)        
+    densold=densnew
+    
+#%%
+####Plotting velocity profiles#####        
+#U=u[0,obx,:]
+#Re =np.sum(u)*ny/(nx*ny*visc)
+#y=np.arange(ny)
+#a,cov=opt.curve_fit(Velx,y,U,0.0,None) 
+#plt.figure()
+#plt.plot(U,y, 'r+', Velx(y,a),y) 
+#plt.xlabel('Horizontal Velocity') ; plt.ylabel('y') ;plt.title( 'Poiseuille Flow, '"Re=%g"%Re)
+#curve=curvature(U)
+#plt.show()
+#
+#       
+#v = np.transpose(u)
+#fig, ax = plt.subplots(1,1)
+#plt.imshow(v[1:-1,:,0]**2+v[1:-1,:,1]**2)
+#plt.colorbar()
+#Q = ax.quiver(v[1:-1,:,0], v[1:-1,:,1])
+#ax.set_xlim(0, nx-1)
+#ax.set_ylim(0, ny-2)
+#show()
 
 ##########Animation##########
-fig, ax = plt.subplots(1,1)
-Vinx=np.transpose(Ux[0,:,:]) 
-Viny=np.transpose(Uy[0,:,:])
-im=ax.imshow(Vinx[1:-1,:]**2+Viny[1:-1,:]**2)
-
+#fig, ax = plt.subplots(1,1)
+#Vinx=np.transpose(Ux[0,:,:]) 
+#Viny=np.transpose(Uy[0,:,:])
+#im=ax.imshow(Vinx[1:-1,:]**2+Viny[1:-1,:]**2)
+#
 #def animate(i,im,Ux,Uy):
 #    
 #    Vinx=np.transpose(Ux[i,:,:])
@@ -135,4 +162,4 @@ im=ax.imshow(Vinx[1:-1,:]**2+Viny[1:-1,:]**2)
 #                               interval=100, blit=False, repeat=True)    
 #title('velocity profile rectangular obstacle')
 #show() 
- 
+# 
