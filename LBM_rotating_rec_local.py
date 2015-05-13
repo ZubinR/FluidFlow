@@ -4,7 +4,7 @@ import scipy.optimize as opt
 from pylab import *
 from matplotlib import animation
 #### MODEL PARAMETERS##########################################################
-nx = 50 ; ny = 20 ; q = 9 ; tau = 1.85 ; maxiter = 100; du = 0.005
+nx = 50 ; ny = 20 ; q = 9 ; tau = 1.85 ; maxiter = 500; du = 0.005
 obx= nx/2; oby = ny/2  #coordinates of bottom left rectangular obstacle point
 lx=3; ly=5 
 e = np.array([[0,0], [1,0], [1,1], [0,1], [-1,1], [-1,0], [-1,-1], [0,-1], [1,-1]])
@@ -72,14 +72,17 @@ Rcom=np.array([obx,oby])
 
 for time in range(maxiter):
 #    print(time)
-    ub[0,objmask]=Ux[time,objmask]
-    ub[1,objmask]=Uy[time,objmask]
+    ub[:,objmask]=u[:,objmask]
+#    ub[0,objmask]=Ux[time,objmask]
+#    ub[1,objmask]=Uy[time,objmask]
     eub = np.dot(e,ub.transpose(1,0,2))
 #    uold=u
 #    print(densnew[5,2,2]-densold[5,2,2])
     for j in range(q): 
         densnew[j,:,:]=np.roll(np.roll(densold[j,:,:],e[j,0],axis=0),e[j,1],axis=1)
+    
     print(densnew[5,4,2]-densold[5,4,2])
+
     for j in range(q):
         densnew[j,index[j][0],index[j][1]] = densnew[qflip[j],index[j][0],
                                                    index[j][1]] - 6 * weight[j]*rho[index[j][0],index[j][1]]*eub[j,index[j][0],index[j][1]]
@@ -90,36 +93,39 @@ for time in range(maxiter):
 #
 #
 #   
-    Ux[time,:,:]=u[0,:,:]
-    Uy[time,:,:]=u[1,:,:]
+#    Ux[time,:,:]=u[0,:,:]
+#    Uy[time,:,:]=u[1,:,:]
 ##    print(rho[1,1]) # Checks density conservation
     denseq = equilibrium(rho,u)
     for j in range (q): #Relaxation
         densnew[j,mask] = (1-1/tau)*densnew[j,mask] + denseq[j,mask]/tau
 #    
-        Fx[j,objmask]=2*(densold[j,objmask]- densnew[j,objmask] - 2*(weight[j]*3*rho[objmask]*eub[j,objmask]))*e[j,0]
-        Fy[j,objmask]=2*(densold[j,objmask]- densnew[j,objmask] - 2*(weight[j]*3*rho[objmask]*eub[j,objmask]))*e[j,1]
+        Fx[j,objmask]=2*(densold[j,objmask]- densnew[qflip[j],objmask] - 2*(weight[j]*3*rho[objmask]*eub[j,objmask]))*e[j,0]
+        Fy[j,objmask]=2*(densold[j,objmask]- densnew[qflip[j],objmask] - 2*(weight[j]*3*rho[objmask]*eub[j,objmask]))*e[j,1]
 #    
     
     Ftot[0]=sum(Fx); Ftot[1]=sum(Fy)
     F = 0.5 * (Ftot+Ftot0)
-    Ftot0=Ftot
+    Ftot0=Ftot.copy()
      
     
 #    
     if time==0:
-        utemp[1] = u
-        utemp[-1,:,objmask]=2*F
+        utemp[[1,-1]] = u
+        k = utemp[1] ; l = utemp[-1]
+#        utemp[-1,:,objmask]=2*F
+        l[objmask]=2
 #        Uy[-1,:,objmask]=2*F[1]
     else:    
         utemp[-1,:,objmask]=2*F +utemp[0,:,objmask]
 #        Uy[-1,:,objmask]=2*F[1] #Uy[time-1,objmask]+
-    utemp=np.roll(utemp,1,axis=0)    ; utemp[-1]= 0 ; u = utemp[1].copy()
+    utemp=np.roll(utemp,-1,axis=0)    ; 
+    u = utemp[1]
 #    u[0,objmask]=Ux[time+1,objmask]
 #    u[1,objmask]=Uy[time+1,objmask]
 #    
 #    Rcom+=u[:,obx,oby]
-#    
+##    
 #    objmask=np.roll(np.roll(objmask,int(u[0,obx,oby]),axis=0),int(u[1,obx,oby]),axis=1)        
     densold=densnew.copy()
     
