@@ -112,12 +112,10 @@ for time in range(maxiter):
 #    
     if time==0:
         utemp[[1,-1]] = u
-        k = utemp[1] ; l = utemp[-1]
-#        utemp[-1,:,objmask]=2*F
-        l[objmask]=2
+        utemp[-1,:,objmask]=2*F
 #        Uy[-1,:,objmask]=2*F[1]
     else:    
-        utemp[-1,:,objmask]=2*F +utemp[0,:,objmask]
+        utemp[-1,:,objmask]=2*F + utemp[0,:,objmask]
 #        Uy[-1,:,objmask]=2*F[1] #Uy[time-1,objmask]+
     utemp=np.roll(utemp,-1,axis=0)    ; 
     u = utemp[1]
