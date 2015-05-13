@@ -100,8 +100,8 @@ for time in range(maxiter):
     for j in range (q): #Relaxation
         densnew[j,mask] = (1-1/tau)*densnew[j,mask] + denseq[j,mask]/tau
 #    
-        Fx[j,objmask]=2*(densold[j,objmask]- densnew[qflip[j],objmask] - 2*(weight[j]*3*rho[objmask]*eub[j,objmask]))*e[j,0]
-        Fy[j,objmask]=2*(densold[j,objmask]- densnew[qflip[j],objmask] - 2*(weight[j]*3*rho[objmask]*eub[j,objmask]))*e[j,1]
+        Fx[j,objmask]=2*(densold[j,objmask]- densnew[j,objmask] - 2*(weight[j]*3*rho[objmask]*eub[j,objmask]))*e[j,0]
+        Fy[j,objmask]=2*(densold[j,objmask]- densnew[j,objmask] - 2*(weight[j]*3*rho[objmask]*eub[j,objmask]))*e[j,1]
 #    
     
     Ftot[0]=sum(Fx); Ftot[1]=sum(Fy)
