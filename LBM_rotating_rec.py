@@ -4,7 +4,7 @@ import scipy.optimize as opt
 from pylab import *
 from matplotlib import animation
 #### MODEL PARAMETERS##########################################################
-nx = 50 ; ny = 20 ; q = 9 ; tau = 1.85 ; maxiter = 100; du = 0.005
+nx = 50 ; ny = 20 ; q = 9 ; tau = 1.85 ; maxiter = 4; du = 0.005
 obx= nx/2; oby = ny/2  #coordinates of bottom left rectangular obstacle point
 lx=3; ly=5 
 e = np.array([[0,0], [1,0], [1,1], [0,1], [-1,1], [-1,0], [-1,-1], [0,-1], [1,-1]])
@@ -33,6 +33,8 @@ def curvature(f):
 #Initializing parameters/matrices
 visc=(2*tau-1)/6
 u = np.zeros((2,nx,ny))
+uold=np.zeros((2,nx,ny))
+unew=np.zeros((2,nx,ny))
 ub = np.zeros((2,nx,ny))
 rho=np.ones((nx,ny))
 denseq = equilibrium(rho,u) 
@@ -49,6 +51,8 @@ Ftot=np.zeros((2))
 Ftot0=np.zeros((2))
 mask = np.ones((nx,ny),dtype=bool)
 mask[:,[0,-1]]=False
+mask3= np.zeros((nx,ny),dtype=bool)
+mask3[obx-lx:obx+lx,oby-ly:oby+ly] = True
 mask[obx-lx:obx+lx,oby-ly:oby+ly] = False
 objmask = np.zeros((nx,ny),dtype=bool)
 objmask[obx-lx:obx+lx,[oby-ly,oby+ly-1]]=True   ; objmask[[obx-lx,obx+lx-1],oby-ly:oby+ly]=True
@@ -66,19 +70,19 @@ index = [] # Contains indices of boundary points adjacent to bulk points.
 for j in range(q):
     [x,y]=wall[j,:,:].nonzero()
     index.append([x,y])
-    
-Rcom=np.array([obx,oby])    
-
+        
+Rcom=np.array([obx,oby])
 for time in range(maxiter):
-#    print(time)
-    ub[0,objmask]=Ux[time,objmask]
-    ub[1,objmask]=Uy[time,objmask]
+#    print(time) 
+    uobj[:,mask3]=u[:,mask3]
+    uold[:,mask3]=uobj[:,mask3]
+    ub[:,objmask]=u[:,objmask]
+    print(ub[:,objmask])
     eub = np.dot(e,ub.transpose(1,0,2))
-    uold=u
 #    print(densnew[5,2,2]-densold[5,2,2])
     for j in range(q): 
         densnew[j,:,:]=np.roll(np.roll(densold[j,:,:],e[j,0],axis=0),e[j,1],axis=1)
-    print(densnew[5,4,2]-densold[5,4,2])
+#    print(densnew[5,4,2]-densold[5,4,2])
     for j in range(q):
         densnew[j,index[j][0],index[j][1]] = densnew[qflip[j],index[j][0],
                                                    index[j][1]] - 6 * weight[j]*rho[index[j][0],index[j][1]]*eub[j,index[j][0],index[j][1]]
@@ -86,11 +90,12 @@ for time in range(maxiter):
     rho = np.sum(densnew,axis=0)
     u = np.dot(e.T,densnew.transpose(1,0,2))/rho  
     u[0,mask]+=du
+    
 #
 #
 #   
-    Ux[time,:,:]=u[0,:,:]
-    Uy[time,:,:]=u[1,:,:]
+#    Ux[time,:,:]=u[0,:,:]
+#    Uy[time,:,:]=u[1,:,:]
 ##    print(rho[1,1]) # Checks density conservation
     denseq = equilibrium(rho,u)
     for j in range (q): #Relaxation
@@ -101,25 +106,25 @@ for time in range(maxiter):
 #    
     
     Ftot[0]=sum(Fx); Ftot[1]=sum(Fy)
-    F = 0.5 * (Ftot+Ftot0)
+    F = np.array([0.01,0])#0.5 * (Ftot+Ftot0)
+    
 
-    utemp=[]
-    unew=
-    utemp.extend((uold,u,unew))
+    
+    unew[0,mask3]=uold[0,mask3]+2*F[0]
+    unew[1,mask3]=uold[1,mask3]+2*F[1]
+    u[:,mask3]=unew[:,mask3]
 #    Ftot0=Ftot
-    if time==0:
-        Ux[time+1,objmask]=2*Ftot[0]
-        Uy[time+1,objmask]=2*Ftot[1]
-    else:    
-        Ux[time+1,objmask]=2*Ftot[0] #+Ux[time-1,objmask]
-        Uy[time+1,objmask]=2*Ftot[1] #Uy[time-1,objmask]+
+#    Ux[time+1,objmask]=2*Ftot[0] #+Ux[time-1,objmask]
+#    Uy[time+1,objmask]=2*Ftot[1] #Uy[time-1,objmask]+
 ##    
 #    u[0,objmask]=Ux[time+1,objmask]
 #    u[1,objmask]=Uy[time+1,objmask]
 #    
-#    Rcom+=u[:,obx,oby]
+    Rcom+=u[:,obx,oby]
 #    
-#    objmask=np.roll(np.roll(objmask,int(u[0,obx,oby]),axis=0),int(u[1,obx,oby]),axis=1)        
+    objmask=np.roll(np.roll(objmask,int(u[0,obx,oby]),axis=0),int(u[1,obx,oby]),axis=1)
+    mask3=np.roll(np.roll(mask3,int(u[0,obx,oby]),axis=0),int(u[1,obx,oby]),axis=1)
+    uobj=np.roll(np.roll(uobj,int(u[0,obx,oby]),axis=0),int(u[1,obx,oby]),axis=1)     
     densold=densnew
     
 #%%
