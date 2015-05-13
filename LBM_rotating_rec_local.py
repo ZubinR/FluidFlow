@@ -44,7 +44,7 @@ Ux=np.zeros((maxiter+1,nx,ny))
 Uy=np.zeros((maxiter+1,nx,ny))
 uold = np.zeros((2,nx,ny))
 unew = np.zeros((2,nx,ny))
-
+utemp = np.zeros((2,2,nx,ny))# 4D
 Fy=Fx=np.zeros((q,nx,ny))
 Ftot=np.zeros((2))
 Ftot0=np.zeros((2))
@@ -104,10 +104,11 @@ for time in range(maxiter):
     Ftot[0]=sum(Fx); Ftot[1]=sum(Fy)
     F = 0.5 * (Ftot+Ftot0)
     Ftot0=Ftot
-    utemp = np.array([uold, u, unew])# 4D 
+     
     
 #    
     if time==0:
+        utemp[1] = u
         utemp[-1,:,objmask]=2*F
 #        Uy[-1,:,objmask]=2*F[1]
     else:    
@@ -120,7 +121,7 @@ for time in range(maxiter):
 #    Rcom+=u[:,obx,oby]
 #    
 #    objmask=np.roll(np.roll(objmask,int(u[0,obx,oby]),axis=0),int(u[1,obx,oby]),axis=1)        
-    densold=densnew
+    densold=densnew.copy()
     
 #%%
 ####Plotting velocity profiles#####        
