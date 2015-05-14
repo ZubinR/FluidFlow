@@ -96,7 +96,11 @@ for time in range(maxiter):
     for j in range(q):
 
         densnew[j,index[j][0],index[j][1]] = densnew[qflip[j],index[j][0],
-                                                   index[j][1]] #- 6 * weight[j]*rhoBsum(Fy)
+                                                   index[j][1]] #- 6 * weight[j]*rho[index[j][0],index[j][1]]*eub[j,index[j][0],index[j][1]]
+        Fx[j,edgeindex[j][0],edgeindex[j][1]] = 2*(densold[j,edgefluidindex[j][0],edgefluidindex[j][1]] - densnew[[j,edgeindex[j][0],edgeindex[j][1]]]-2*(weight[j]*3*rho[edgeindex[j][0],edgeindex[j][1]]*eub[j,edgeindex[j][0],edgeindex[j][1]]))*e[j,0]
+        Fy[j,edgeindex[j][0],edgeindex[j][1]] = 2*(densold[j,edgefluidindex[j][0],edgefluidindex[j][1]] - densnew[[j,edgeindex[j][0],edgeindex[j][1]]]-2*(weight[j]*3*rho[edgeindex[j][0],edgeindex[j][1]]*eub[j,edgeindex[j][0],edgeindex[j][1]]))*e[j,1]
+    
+    Ftot[0] = sum (Fx) ; Ftot[1] = sum(Fy)
 #    F=0.5 * (Ftot+Ftot0)    
 #    Ftot0=Ftot
     
