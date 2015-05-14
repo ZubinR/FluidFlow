@@ -95,7 +95,10 @@ for time in range(maxiter):
     for j in range(q):
 
         densnew[j,index[j][0],index[j][1]] = densnew[qflip[j],index[j][0],
-                                                   index[j][1]] #- 6 * weight[j]*rho[index[j][0],index[j][1]]*eub[j,index[j][0],index[j][1]]
+                                                   index[j][1]] - 6 * weight[j]*rho[index[j][0],index[j][1]]*eub[j,index[j][0],index[j][1]]
+
+        densnew[j,edgefluidindex[j][0],edgefluidindex[j][1]] = densnew[qflip[j],edgefluidindex[j][0],
+                                                   edgefluidindex[j][1]] - 6 * weight[j]*rho[edgefluidindex[j][0],edgefluidindex[j][1]]*eub[j,edgefluidindex[j][0],edgefluidindex[j][1]]
         
         Fx[j,edgeindex[j][0],edgeindex[j][1]] = 2*(densold[j,edgefluidindex[j][0],edgefluidindex[j][1]] - densnew[[j,edgeindex[j][0],edgeindex[j][1]]]-2*(weight[j]*3*rho[edgeindex[j][0],edgeindex[j][1]]*eub[j,edgeindex[j][0],edgeindex[j][1]]))*e[j,0]
         Fy[j,edgeindex[j][0],edgeindex[j][1]] = 2*(densold[j,edgefluidindex[j][0],edgefluidindex[j][1]] - densnew[[j,edgeindex[j][0],edgeindex[j][1]]]-2*(weight[j]*3*rho[edgeindex[j][0],edgeindex[j][1]]*eub[j,edgeindex[j][0],edgeindex[j][1]]))*e[j,1]
@@ -121,9 +124,9 @@ for time in range(maxiter):
     utemp[:,:,20:40] = u
     utemp[0,:,40:60] = utemp[0,:,0:20] + 2*F[0]*mask3
     utemp[1,:,40:60] = utemp[1,:,0:20] + 2*F[1]*mask3
-    
-    utemp[:,:,0:20] = 0 ; utemp = np.roll(utemp,20,axis=2)
-    
+    utemp[:,:,0:20] = 0 ; utemp = np.roll(utemp,-20,axis=2)
+    temp = utemp[:,:,20:40] ; u [:,mask3] = temp[:,mask3]    
+#    u = utemp[:,:,20:40]
 # Here we try to move the masks and the center of mass by 1 point to the right if the velocity is large enough.   
     S+=u[:,mask3]
     if S[0,0]>=i+1:
