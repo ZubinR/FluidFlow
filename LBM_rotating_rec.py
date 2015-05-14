@@ -62,33 +62,32 @@ wall=np.zeros((q,nx,ny),dtype=bool)
 edge = np.zeros((q,nx,ny),dtype=bool)
 edgefluid=np.zeros((q,nx,ny),dtype=bool) # Will contain the crossed boundary points.
 qflip = np.mod((np.arange(q) +3),8)+1 ; qflip[0]=0
-
-for j in range(q):
-    wall[j,:,:] = np.logical_and(notbulk,
-                                 np.roll(np.roll(mask,e[j,0],axis=0),e[j,1],axis=1))
-    
-    edge [j,:,:]= np.logical_and(mask3,
-                                 np.roll(np.roll(~mask3,e[j,0],axis=0),e[j,1],axis=1))
-    edgefluid[j,:,:] = np.roll(np.roll(edge[j,:,:],e[qflip[j],0],axis=0),e[qflip[j],1],axis=1)
-
-index = []
-edgeindex = [] # Contains indices of boundary points adjacent to bulk points.
-edgefluidindex = []
-for j in range(q):
-    [x,y]=wall[j,:,:].nonzero()
-    index.append([x,y])
-    [m,n]=edge[j,:,:].nonzero() 
-    edgeindex.append([m,n])    
-    [k,l]=edgefluid[j,:,:].nonzero() 
-    edgefluidindex.append([k,l])
-    
 Rcom=np.array([obx,oby])
+utemp = np.zeros((2,nx,3*ny))
 
 for time in range(maxiter):
+    for j in range(q):
+        wall[j,:,:] = np.logical_and(notbulk,
+                                     np.roll(np.roll(mask,e[j,0],axis=0),e[j,1],axis=1))
+        
+        edge [j,:,:]= np.logical_and(mask3,
+                                     np.roll(np.roll(~mask3,e[j,0],axis=0),e[j,1],axis=1))
+        edgefluid[j,:,:] = np.roll(np.roll(edge[j,:,:],e[qflip[j],0],axis=0),e[qflip[j],1],axis=1)
     
-#    uold[:,mask3]=uobj[:,mask3]
-    ub[:,objmask]=u[:,objmask]
-#    print(ub[:,objmask])
+    index = []
+    edgeindex = [] # Contains indices of boundary points adjacent to bulk points.
+    edgefluidindex = []
+    for j in range(q):
+        [x,y]=wall[j,:,:].nonzero()
+        index.append([x,y])
+        [m,n]=edge[j,:,:].nonzero() 
+        edgeindex.append([m,n])    
+        [k,l]=edgefluid[j,:,:].nonzero() 
+        edgefluidindex.append([k,l])
+    
+
+
+    ub[:,mask3] = u[:,mask3]    
     eub = np.dot(e,ub.transpose(1,0,2))
 #    print(densnew[5,2,2]-densold[5,2,2])
     for j in range(q): 
@@ -97,46 +96,44 @@ for time in range(maxiter):
 
         densnew[j,index[j][0],index[j][1]] = densnew[qflip[j],index[j][0],
                                                    index[j][1]] #- 6 * weight[j]*rho[index[j][0],index[j][1]]*eub[j,index[j][0],index[j][1]]
+        
         Fx[j,edgeindex[j][0],edgeindex[j][1]] = 2*(densold[j,edgefluidindex[j][0],edgefluidindex[j][1]] - densnew[[j,edgeindex[j][0],edgeindex[j][1]]]-2*(weight[j]*3*rho[edgeindex[j][0],edgeindex[j][1]]*eub[j,edgeindex[j][0],edgeindex[j][1]]))*e[j,0]
         Fy[j,edgeindex[j][0],edgeindex[j][1]] = 2*(densold[j,edgefluidindex[j][0],edgefluidindex[j][1]] - densnew[[j,edgeindex[j][0],edgeindex[j][1]]]-2*(weight[j]*3*rho[edgeindex[j][0],edgeindex[j][1]]*eub[j,edgeindex[j][0],edgeindex[j][1]]))*e[j,1]
     
     Ftot[0] = sum (Fx) ; Ftot[1] = sum(Fy)
-#    F=0.5 * (Ftot+Ftot0)    
-#    Ftot0=Ftot
+    F = 0.5 * (Ftot+Ftot0)    
+    Ftot0 = Ftot
     
 #    F = np.array([0.01,0]) 
     rho = np.sum(densnew,axis=0)
     u = np.dot(e.T,densnew.transpose(1,0,2))/rho  
     u[0,mask]+=du
-    
-#
-#
-#   
    
 ##    print(rho[1,1]) # Checks density conservation
     denseq = equilibrium(rho,u)
     for j in range (q): #Relaxation
         densnew[j,mask] = (1-1/tau)*densnew[j,mask] + denseq[j,mask]/tau
-#    
-#       
-    
-
-   
+#    uold[:,mask3] = u[:,mask3]
 #    unew[0,mask3]=uold[0,mask3]+2*F[0]
 #    unew[1,mask3]=uold[1,mask3]+2*F[1]
 #    uobj[:,mask3]=unew[:,mask3]
 #    u[:,mask3]=uobj[:,mask3]
-#    
+    utemp[:,:,20:40] = u
+    utemp[0,:,40:60] = utemp[0,:,0:20] + 2*F[0]*mask3
+    utemp[1,:,40:60] = utemp[1,:,0:20] + 2*F[1]*mask3
+    
+    utemp[:,:,0:20] = 0 ; utemp = np.roll(utemp,20,axis=2)
+    
 # Here we try to move the masks and the center of mass by 1 point to the right if the velocity is large enough.   
-#    S+=uobj[:,mask3]
-#    if S[0,0]>=i+1:
-#        i=i+1
-#        objmask=np.roll(objmask,1,axis=0)
-#        mask=np.roll(mask,1,axis=0)
-#        mask3=np.roll(mask3,1,axis=0)
-#        uobj=np.roll(uobj,1,axis=0) 
-#        uobj[:,~mask3]=0
-#        Rcom+=e[1,:]
+    S+=u[:,mask3]
+    if S[0,0]>=i+1:
+        i=i+1
+        objmask=np.roll(objmask,1,axis=0)
+        mask=np.roll(mask,1,axis=0)
+        mask3=np.roll(mask3,1,axis=0)
+        uobj=np.roll(uobj,1,axis=0) 
+        uobj[:,~mask3]=0
+        Rcom+=e[1,:]
     densold=densnew
     
 #%%
