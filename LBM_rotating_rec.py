@@ -4,7 +4,7 @@ import scipy.optimize as opt
 from pylab import *
 from matplotlib import animation
 #### MODEL PARAMETERS##########################################################
-nx = 50 ; ny = 20 ; q = 9 ; tau = 1.85 ; maxiter = 4; du = 0.005
+nx = 50 ; ny = 20 ; q = 9 ; tau = 1.85 ; maxiter = 100; du = 0.005
 obx= nx/2; oby = ny/2  #coordinates of bottom left rectangular obstacle point
 lx=3; ly=5 
 e = np.array([[0,0], [1,0], [1,1], [0,1], [-1,1], [-1,0], [-1,-1], [0,-1], [1,-1]])
@@ -44,7 +44,8 @@ uobj=np.zeros((2,nx,ny))
 Ux=np.zeros((maxiter+1,nx,ny))
 Uy=np.zeros((maxiter+1,nx,ny))
 S=np.zeros((2,4*lx*ly))
-Fy=Fx=np.zeros((q,nx,ny))
+Fy=np.zeros((q,nx,ny))
+Fx=np.zeros((q,nx,ny))
 Ftot=np.zeros((2))
 Ftot0=np.zeros((2))
 i=0
@@ -57,36 +58,49 @@ mask[obx-lx:obx+lx,oby-ly:oby+ly] = False
 objmask = np.zeros((nx,ny),dtype=bool)
 objmask[obx-lx:obx+lx,[oby-ly,oby+ly-1]]=True   ; objmask[[obx-lx,obx+lx-1],oby-ly:oby+ly]=True
 notbulk= ~mask
-wall = np.zeros((q,nx,ny),dtype=bool) # Will contain the crossed boundary points.
-
+wall=np.zeros((q,nx,ny),dtype=bool)
+edge = np.zeros((q,nx,ny),dtype=bool)
+edgefluid=np.zeros((q,nx,ny),dtype=bool) # Will contain the crossed boundary points.
+qflip = np.mod((np.arange(q) +3),8)+1 ; qflip[0]=0
 
 for j in range(q):
     wall[j,:,:] = np.logical_and(notbulk,
                                  np.roll(np.roll(mask,e[j,0],axis=0),e[j,1],axis=1))
     
-qflip = np.mod((np.arange(q) +3),8)+1 ; qflip[0]=0
+    edge [j,:,:]= np.logical_and(mask3,
+                                 np.roll(np.roll(~mask3,e[j,0],axis=0),e[j,1],axis=1))
+    edgefluid[j,:,:] = np.roll(np.roll(edge[j,:,:],e[qflip[j],0],axis=0),e[qflip[j],1],axis=1)
 
-
-index = [] # Contains indices of boundary points adjacent to bulk points.
+index = []
+edgeindex = [] # Contains indices of boundary points adjacent to bulk points.
+edgefluidindex = []
 for j in range(q):
     [x,y]=wall[j,:,:].nonzero()
     index.append([x,y])
-        
+    [m,n]=edge[j,:,:].nonzero() 
+    edgeindex.append([m,n])    
+    [k,l]=edgefluid[j,:,:].nonzero() 
+    edgefluidindex.append([k,l])
+    
 Rcom=np.array([obx,oby])
 
 for time in range(maxiter):
-    u[:,mask3]=uobj[:,mask3]
-    uold[:,mask3]=uobj[:,mask3]
+    
+#    uold[:,mask3]=uobj[:,mask3]
     ub[:,objmask]=u[:,objmask]
-    print(ub[:,objmask])
+#    print(ub[:,objmask])
     eub = np.dot(e,ub.transpose(1,0,2))
 #    print(densnew[5,2,2]-densold[5,2,2])
     for j in range(q): 
         densnew[j,:,:]=np.roll(np.roll(densold[j,:,:],e[j,0],axis=0),e[j,1],axis=1)
     for j in range(q):
+
         densnew[j,index[j][0],index[j][1]] = densnew[qflip[j],index[j][0],
-                                                   index[j][1]] - 6 * weight[j]*rho[index[j][0],index[j][1]]*eub[j,index[j][0],index[j][1]]
-#    
+                                                   index[j][1]] #- 6 * weight[j]*rhoBsum(Fy)
+#    F=0.5 * (Ftot+Ftot0)    
+#    Ftot0=Ftot
+    
+#    F = np.array([0.01,0]) 
     rho = np.sum(densnew,axis=0)
     u = np.dot(e.T,densnew.transpose(1,0,2))/rho  
     u[0,mask]+=du
@@ -100,28 +114,25 @@ for time in range(maxiter):
     for j in range (q): #Relaxation
         densnew[j,mask] = (1-1/tau)*densnew[j,mask] + denseq[j,mask]/tau
 #    
-#        Fx[j,objmask]=2*(densold[j,objmask]- densnew[j,objmask] - 2*(weight[j]*3*rho[objmask]*eub[j,objmask]))*e[j,0]
-#        Fy[j,objmask]=2*(densold[j,objmask]- densnew[j,objmask] - 2*(weight[j]*3*rho[objmask]*eub[j,objmask]))*e[j,1]
-#    
-    # At the moment we assume here a constant force in the x-direction, since Force calculation doesn't work.
-#    Ftot[0]=sum(Fx); Ftot[1]=sum(Fy)
-    F = np.array([0.01,0])#0.5 * (Ftot+Ftot0)
+#       
     
 
    
-    unew[0,mask3]=uold[0,mask3]+2*F[0]
-    unew[1,mask3]=uold[1,mask3]+2*F[1]
-    uobj[:,mask3]=unew[:,mask3]
+#    unew[0,mask3]=uold[0,mask3]+2*F[0]
+#    unew[1,mask3]=uold[1,mask3]+2*F[1]
+#    uobj[:,mask3]=unew[:,mask3]
+#    u[:,mask3]=uobj[:,mask3]
 #    
 # Here we try to move the masks and the center of mass by 1 point to the right if the velocity is large enough.   
-    S+=uobj[:,mask3]
-    if S[0,0]>=i+1:
-        i=i+1
-        objmask=np.roll(objmask,1,axis=0)
-        mask=np.roll(mask,1,axis=0)
-        mask3=np.roll(mask3,1,axis=0)
-        uobj=np.roll(uobj,1,axis=0) 
-        Rcom+=e[1,:]
+#    S+=uobj[:,mask3]
+#    if S[0,0]>=i+1:
+#        i=i+1
+#        objmask=np.roll(objmask,1,axis=0)
+#        mask=np.roll(mask,1,axis=0)
+#        mask3=np.roll(mask3,1,axis=0)
+#        uobj=np.roll(uobj,1,axis=0) 
+#        uobj[:,~mask3]=0
+#        Rcom+=e[1,:]
     densold=densnew
     
 #%%
@@ -136,15 +147,15 @@ for time in range(maxiter):
 #curve=curvature(U)
 #plt.show()
 #
-#       
-#v = np.transpose(u)
-#fig, ax = plt.subplots(1,1)
-#plt.imshow(v[1:-1,:,0]**2+v[1:-1,:,1]**2)
-#plt.colorbar()
-#Q = ax.quiver(v[1:-1,:,0], v[1:-1,:,1])
-#ax.set_xlim(0, nx-1)
-#ax.set_ylim(0, ny-2)
-#show()
+#      
+v = np.transpose(u)
+fig, ax = plt.subplots(1,1)
+plt.imshow(v[1:-1,:,0]**2+v[1:-1,:,1]**2)
+plt.colorbar()
+Q = ax.quiver(v[1:-1,:,0], v[1:-1,:,1])
+ax.set_xlim(0, nx-1)
+ax.set_ylim(0, ny-2)
+show()
 
 ##########Animation##########
 #fig, ax = plt.subplots(1,1)
