@@ -40,15 +40,15 @@ rho=np.ones((nx,ny))
 denseq = equilibrium(rho,u) 
 densold = denseq.copy()
 densnew = np.zeros((q,nx,ny))
-
-
+uobj=np.zeros((2,nx,ny))
 Ux=np.zeros((maxiter+1,nx,ny))
 Uy=np.zeros((maxiter+1,nx,ny))
-
-
+S=np.zeros((2,4*lx*ly))
 Fy=Fx=np.zeros((q,nx,ny))
 Ftot=np.zeros((2))
 Ftot0=np.zeros((2))
+i=0
+
 mask = np.ones((nx,ny),dtype=bool)
 mask[:,[0,-1]]=False
 mask3= np.zeros((nx,ny),dtype=bool)
@@ -58,6 +58,7 @@ objmask = np.zeros((nx,ny),dtype=bool)
 objmask[obx-lx:obx+lx,[oby-ly,oby+ly-1]]=True   ; objmask[[obx-lx,obx+lx-1],oby-ly:oby+ly]=True
 notbulk= ~mask
 wall = np.zeros((q,nx,ny),dtype=bool) # Will contain the crossed boundary points.
+
 
 for j in range(q):
     wall[j,:,:] = np.logical_and(notbulk,
@@ -72,9 +73,9 @@ for j in range(q):
     index.append([x,y])
         
 Rcom=np.array([obx,oby])
+
 for time in range(maxiter):
-#    print(time) 
-    uobj[:,mask3]=u[:,mask3]
+    u[:,mask3]=uobj[:,mask3]
     uold[:,mask3]=uobj[:,mask3]
     ub[:,objmask]=u[:,objmask]
     print(ub[:,objmask])
@@ -82,7 +83,6 @@ for time in range(maxiter):
 #    print(densnew[5,2,2]-densold[5,2,2])
     for j in range(q): 
         densnew[j,:,:]=np.roll(np.roll(densold[j,:,:],e[j,0],axis=0),e[j,1],axis=1)
-#    print(densnew[5,4,2]-densold[5,4,2])
     for j in range(q):
         densnew[j,index[j][0],index[j][1]] = densnew[qflip[j],index[j][0],
                                                    index[j][1]] - 6 * weight[j]*rho[index[j][0],index[j][1]]*eub[j,index[j][0],index[j][1]]
@@ -94,37 +94,34 @@ for time in range(maxiter):
 #
 #
 #   
-#    Ux[time,:,:]=u[0,:,:]
-#    Uy[time,:,:]=u[1,:,:]
+   
 ##    print(rho[1,1]) # Checks density conservation
     denseq = equilibrium(rho,u)
     for j in range (q): #Relaxation
         densnew[j,mask] = (1-1/tau)*densnew[j,mask] + denseq[j,mask]/tau
 #    
-        Fx[j,objmask]=2*(densold[j,objmask]- densnew[j,objmask] - 2*(weight[j]*3*rho[objmask]*eub[j,objmask]))*e[j,0]
-        Fy[j,objmask]=2*(densold[j,objmask]- densnew[j,objmask] - 2*(weight[j]*3*rho[objmask]*eub[j,objmask]))*e[j,1]
+#        Fx[j,objmask]=2*(densold[j,objmask]- densnew[j,objmask] - 2*(weight[j]*3*rho[objmask]*eub[j,objmask]))*e[j,0]
+#        Fy[j,objmask]=2*(densold[j,objmask]- densnew[j,objmask] - 2*(weight[j]*3*rho[objmask]*eub[j,objmask]))*e[j,1]
 #    
-    
-    Ftot[0]=sum(Fx); Ftot[1]=sum(Fy)
+    # At the moment we assume here a constant force in the x-direction, since Force calculation doesn't work.
+#    Ftot[0]=sum(Fx); Ftot[1]=sum(Fy)
     F = np.array([0.01,0])#0.5 * (Ftot+Ftot0)
     
 
-    
+   
     unew[0,mask3]=uold[0,mask3]+2*F[0]
     unew[1,mask3]=uold[1,mask3]+2*F[1]
-    u[:,mask3]=unew[:,mask3]
-#    Ftot0=Ftot
-#    Ux[time+1,objmask]=2*Ftot[0] #+Ux[time-1,objmask]
-#    Uy[time+1,objmask]=2*Ftot[1] #Uy[time-1,objmask]+
-##    
-#    u[0,objmask]=Ux[time+1,objmask]
-#    u[1,objmask]=Uy[time+1,objmask]
+    uobj[:,mask3]=unew[:,mask3]
 #    
-    Rcom+=u[:,obx,oby]
-#    
-    objmask=np.roll(np.roll(objmask,int(u[0,obx,oby]),axis=0),int(u[1,obx,oby]),axis=1)
-    mask3=np.roll(np.roll(mask3,int(u[0,obx,oby]),axis=0),int(u[1,obx,oby]),axis=1)
-    uobj=np.roll(np.roll(uobj,int(u[0,obx,oby]),axis=0),int(u[1,obx,oby]),axis=1)     
+# Here we try to move the masks and the center of mass by 1 point to the right if the velocity is large enough.   
+    S+=uobj[:,mask3]
+    if S[0,0]>=i+1:
+        i=i+1
+        objmask=np.roll(objmask,1,axis=0)
+        mask=np.roll(mask,1,axis=0)
+        mask3=np.roll(mask3,1,axis=0)
+        uobj=np.roll(uobj,1,axis=0) 
+        Rcom+=e[1,:]
     densold=densnew
     
 #%%
