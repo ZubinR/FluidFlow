@@ -87,7 +87,7 @@ for time in range(maxiter):
     
 
 
-    ub[:,mask3] = u[:,mask3]    
+    ub[:,objmask] = u[:,objmask]    
     eub = np.dot(e,ub.transpose(1,0,2))
 #    print(densnew[5,2,2]-densold[5,2,2])
     for j in range(q): 
@@ -97,16 +97,15 @@ for time in range(maxiter):
         densnew[j,index[j][0],index[j][1]] = densnew[qflip[j],index[j][0],
                                                    index[j][1]] - 6 * weight[j]*rho[index[j][0],index[j][1]]*eub[j,index[j][0],index[j][1]]
 
-        densnew[j,edgefluidindex[j][0],edgefluidindex[j][1]] = densnew[qflip[j],edgefluidindex[j][0],
-                                                   edgefluidindex[j][1]] - 6 * weight[j]*rho[edgefluidindex[j][0],edgefluidindex[j][1]]*eub[j,edgefluidindex[j][0],edgefluidindex[j][1]]
-        
+#        densnew[j,edgefluidindex[j][0],edgefluidindex[j][1]] = densnew[qflip[j],edgefluidindex[j][0],
+#                                                   edgefluidindex[j][1]] - 6 * weight[j]*rho[edgefluidindex[j][0],edgefluidindex[j][1]]*eub[j,edgefluidindex[j][0],edgefluidindex[j][1]]
+#        
         Fx[j,edgeindex[j][0],edgeindex[j][1]] = 2*(densold[j,edgefluidindex[j][0],edgefluidindex[j][1]] - densnew[[j,edgeindex[j][0],edgeindex[j][1]]]-2*(weight[j]*3*rho[edgeindex[j][0],edgeindex[j][1]]*eub[j,edgeindex[j][0],edgeindex[j][1]]))*e[j,0]
         Fy[j,edgeindex[j][0],edgeindex[j][1]] = 2*(densold[j,edgefluidindex[j][0],edgefluidindex[j][1]] - densnew[[j,edgeindex[j][0],edgeindex[j][1]]]-2*(weight[j]*3*rho[edgeindex[j][0],edgeindex[j][1]]*eub[j,edgeindex[j][0],edgeindex[j][1]]))*e[j,1]
     
     Ftot[0] = sum (Fx) ; Ftot[1] = sum(Fy)
     F = 0.5 * (Ftot+Ftot0)    
-    Ftot0 = Ftot
-    
+    np.copyto(Ftot0,Ftot)
 #    F = np.array([0.01,0]) 
     rho = np.sum(densnew,axis=0)
     u = np.dot(e.T,densnew.transpose(1,0,2))/rho  
@@ -121,22 +120,24 @@ for time in range(maxiter):
 #    unew[1,mask3]=uold[1,mask3]+2*F[1]
 #    uobj[:,mask3]=unew[:,mask3]
 #    u[:,mask3]=uobj[:,mask3]
-    utemp[:,:,20:40] = u
-    utemp[0,:,40:60] = utemp[0,:,0:20] + 2*F[0]*mask3
-    utemp[1,:,40:60] = utemp[1,:,0:20] + 2*F[1]*mask3
-    utemp[:,:,0:20] = 0 ; utemp = np.roll(utemp,-20,axis=2)
-    temp = utemp[:,:,20:40] ; u [:,mask3] = temp[:,mask3]    
+#    utemp[:,:,20:40] = u
+#    utemp[0,:,40:60] = utemp[0,:,0:20] + 2*F[0]*mask3
+#    utemp[1,:,40:60] = utemp[1,:,0:20] + 2*F[1]*mask3
+#    utemp[:,:,0:20] = 0 ; utemp = np.roll(utemp,-20,axis=2)
+#    temp = utemp[:,:,20:40] ; u [:,mask3] = temp[:,mask3]    
 #    u = utemp[:,:,20:40]
 # Here we try to move the masks and the center of mass by 1 point to the right if the velocity is large enough.   
-    S+=u[:,mask3]
-    if S[0,0]>=i+1:
-        i=i+1
-        objmask=np.roll(objmask,1,axis=0)
-        mask=np.roll(mask,1,axis=0)
-        mask3=np.roll(mask3,1,axis=0)
-        uobj=np.roll(uobj,1,axis=0) 
-        uobj[:,~mask3]=0
-        Rcom+=e[1,:]
+#    S+=u[:,mask3]
+#    if S[0,0]>=i+1:
+#        i=i+1
+#        objmask=np.roll(objmask,1,axis=0)
+#        mask=np.roll(mask,1,axis=0)
+#        mask3=np.roll(mask3,1,axis=0)
+#        uobj=np.roll(uobj,1,axis=0) 
+#        uobj[:,~mask3]=0
+#        Rcom+=e[1,:]
+#    
+    
     densold=densnew
     
 #%%
