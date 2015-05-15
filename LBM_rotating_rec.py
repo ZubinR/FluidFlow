@@ -120,11 +120,11 @@ for time in range(maxiter):
 #    unew[1,mask3]=uold[1,mask3]+2*F[1]
 #    uobj[:,mask3]=unew[:,mask3]
 #    u[:,mask3]=uobj[:,mask3]
-#    utemp[:,:,20:40] = u
-#    utemp[0,:,40:60] = utemp[0,:,0:20] + 2*F[0]*mask3
-#    utemp[1,:,40:60] = utemp[1,:,0:20] + 2*F[1]*mask3
-#    utemp[:,:,0:20] = 0 ; utemp = np.roll(utemp,-20,axis=2)
-#    temp = utemp[:,:,20:40] ; u [:,mask3] = temp[:,mask3]    
+    utemp[:,:,20:40] = u
+    utemp[0,:,40:60] = utemp[0,:,0:20] + 2*F[0]*mask3
+    utemp[1,:,40:60] = utemp[1,:,0:20] + 2*F[1]*mask3
+    utemp[:,:,0:20] = 0 ; utemp = np.roll(utemp,-20,axis=2)
+    temp = utemp[:,:,20:40] ;np.copyto(u[:,mask3],temp[:,mask3]) #u [:,mask3] = temp[:,mask3]    
 #    u = utemp[:,:,20:40]
 # Here we try to move the masks and the center of mass by 1 point to the right if the velocity is large enough.   
 #    S+=u[:,mask3]
@@ -138,7 +138,8 @@ for time in range(maxiter):
 #        Rcom+=e[1,:]
 #    
     
-    densold=densnew
+#    densold=densnew
+    np.copyto(densold,densnew)
     
 #%%
 ####Plotting velocity profiles#####        
